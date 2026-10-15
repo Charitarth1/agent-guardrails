@@ -1,5 +1,7 @@
 # Lessons from auditing my own agent stack
 
+> **A note before the findings.** I'm not a security professional. My background is law, public policy and AI governance. I ran this adversarial audit with Claude (through Claude Code), using its cybersecurity capabilities to play the attacker against my own setup, and worked through the fixes with it. Read this as a practitioner's field notes, not a professional penetration test.
+
 In August 2026 I ran an adversarial security audit on the agent setup I use every day, before connecting it to a chat channel. The F-numbers in this repo's code comments refer to the findings below. Details that would identify my machines, accounts or private folders are removed.
 
 ## The system
@@ -19,16 +21,16 @@ The build was healthy, with tests passing and the type checks clean. The human-i
 
 | ID | Severity | Finding | Status |
 |---|---|---|---|
-| F-0 | Critical | The terminal-only "arm for approval" command was reachable from chat | Fixed |
-| F-1 | Critical | Path traversal in task IDs allowed arbitrary file read and write | Fixed |
-| F-5 | Critical | The chat agent's exec tool was not denied, so the tool policy, workspace limits and folder denylist could all be bypassed | Fixed, with one accepted trade-off |
-| F-2 | High | Prompt injection: captured text flowed, unfenced, into a coding agent holding Bash and Write | Fixed (three layers) |
-| F-3 | High | The approval gate failed **open** on a malformed timestamp (a NaN comparison) | Fixed |
-| F-10 | High | The private-folder denylist was enforced against file reads but not against Bash | Fixed (three layers) |
-| F-12 | High | A live bot token sat in a world-readable file outside every control | Fixed; token rotation is a manual step |
-| F-13 | High | A second, older cloud ingress was still live | Closed at the entrance; cleanup of the old functions pending |
-| F-14 | Medium | Three enforcement layers each held a different denylist | Fixed (one source of truth plus a floor) |
-| F-16 | Medium | Quoting a folder name (`'vault'`, `vault\ name`) slipped past the path check | Fixed |
+| F-0 | Critical | The terminal-only "arm for approval" command was reachable from chat<br>*In plain terms:* The "are you sure?" step meant only for me at my keyboard could also be triggered from a chat message, so anyone who reached the chat could approve changes. | Fixed |
+| F-1 | Critical | Path traversal in task IDs allowed arbitrary file read and write<br>*In plain terms:* A specially crafted task name could make the system read or overwrite files anywhere on the computer, not just in its own folder. | Fixed |
+| F-5 | Critical | The chat agent's exec tool was not denied, so the tool policy, workspace limits and folder denylist could all be bypassed<br>*In plain terms:* I had locked several doors but left a master key in the agent's hand: it could run any command, which made the other restrictions meaningless. | Fixed, with one accepted trade-off |
+| F-2 | High | Prompt injection: captured text flowed, unfenced, into a coding agent holding Bash and Write<br>*In plain terms:* A note sent from my phone could carry hidden instructions that a coding agent with full file and command access would then follow. | Fixed (three layers) |
+| F-3 | High | The approval gate failed **open** on a malformed timestamp (a NaN comparison)<br>*In plain terms:* If the approval timer's date was garbled, the system treated the approval as still valid instead of expired. A broken check meant "yes" when it should have meant "no". | Fixed |
+| F-10 | High | The private-folder denylist was enforced against file reads but not against Bash<br>*In plain terms:* The agent was blocked from opening my private folders one way, but could still open them by typing a command. | Fixed (three layers) |
+| F-12 | High | A live bot token sat in a world-readable file outside every control<br>*In plain terms:* The password for my chat bot sat in a file that any program on the machine could read. | Fixed; token rotation is a manual step |
+| F-13 | High | A second, older cloud ingress was still live<br>*In plain terms:* An older back door into the system was still open after I had built a new front door. | Closed at the entrance; cleanup of the old functions pending |
+| F-14 | Medium | Three enforcement layers each held a different denylist<br>*In plain terms:* Three separate lists of off-limits folders had drifted apart, so a folder protected in one place was exposed in another. | Fixed (one source of truth plus a floor) |
+| F-16 | Medium | Quoting a folder name (`'vault'`, `vault\ name`) slipped past the path check<br>*In plain terms:* Putting quote marks around a folder name was enough to slip past the check that should have blocked it. | Fixed |
 
 ## What I took away
 
