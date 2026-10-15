@@ -2,7 +2,17 @@
 
 > **A note before the findings.** I'm not a security professional. My background is law, public policy and AI governance. I ran this adversarial audit with Claude (through Claude Code), using its cybersecurity capabilities to play the attacker against my own setup, and worked through the fixes with it. Read this as a practitioner's field notes, not a professional penetration test.
 
-In August 2026 I ran an adversarial security audit on the agent setup I use every day, before connecting it to a chat channel. The F-numbers in this repo's code comments refer to the findings below. Details that would identify my machines, accounts or private folders are removed.
+## Context
+
+The setting is [OpenClaw](https://github.com/openclaw/openclaw), an open-source gateway that hosts AI agents and connects them to chat apps. At the end of August 2026 I was adding agents to my OpenClaw setup and preparing to move from the 2026.7 build to the 2.0 line (v2026.8.1), with the aim of running it as an always-on host I could message from my phone. Before connecting the chat channel, I stopped and audited what I had built. The audit ran against the 2026.7 build, shortly before the 2.0 upgrade.
+
+**Scope.** The audit covered three things: the idea pipeline I built on top of OpenClaw (a phone chat that starts coding-agent work), the OpenClaw host and its tool policy, and the other projects on the same machine. It produced 17 findings: 16 in the original report, plus one found while fixing the others. The table below shows the ten I think teach the most.
+
+The F-numbers in this repo's code comments refer to those findings. Details that would identify my machines, accounts or private folders are removed.
+
+## Why this write-up lives next to the code
+
+Every control in this repo exists because something specific failed. The hooks, the config tooling and the limitations page make more sense with their reasons beside them. Someone who only wants the DLP hook can skip this page. Someone deciding whether to trust it can see what it was built to stop, and what it still doesn't.
 
 ## The system
 
@@ -34,13 +44,15 @@ The build was healthy, with tests passing and the type checks clean. The human-i
 
 ## What I took away
 
+Lessons 3 (second half) and 7 come from preparing this repo in October 2026, after the audit. The rest come from the August findings.
+
 **1. A tool policy is only as strong as the exec tool (F-5, F-10).**
 Denying the browser or restricting the file tools to the workspace means nothing if the agent can run `cat` or `curl` through a shell. The harness deny rules matched `Read(...)`, while the same file was one `Bash(cat ...)` away. The fix was layered: exec moved from `full` to an allowlist with deny on a miss, elevated tools were disabled, 25 tools were denied (up from 4), and the DLP hook in this repo now inspects commands as well as content.
 
 **2. Human checkpoints must live outside the runtime that might be compromised (F-0).**
 If the agent that reads untrusted chat text can also arm or approve, then one chat message becomes a merge. Arming, releasing quarantined input and approving are now terminal-only.
 
-**3. Gates fail open in the boring places (F-3, plus a later find).**
+**3. Gates fail open in the boring places (F-3, plus a later find from October).**
 `NaN < now` is false, so a malformed expiry looked like "not expired". Later, while preparing this repo, I found that a crashing hook exits with code 1, and Claude Code only blocks on exit code 2. A bug in the guard would have let the call through. Both now fail closed, and the crash case has a test.
 
 **4. Fence untrusted text, then screen it deterministically (F-2).**
@@ -52,8 +64,31 @@ The harness rules, the hook and the agent prompt each listed the protected folde
 **6. Pattern matchers need adversarial tests for both errors (F-16).**
 Quoting a path defeated the regex. The regression suite now covers quoted, escaped and multi-segment forms. It also has as many "must allow" cases as "must block" ones, because a hook that blocks real work gets switched off.
 
-**7. Redaction by hand drifts.**
+**7. Redaction by hand drifts (found in October, not in the August audit).**
 A config file I had labelled "sanitized" still held my chat ID, while the scripted export beside it was clean. Redaction belongs in a script that refuses to write when anything survives, as `openclaw/openclaw-config.sh` does.
+
+## What you can take from this
+
+**Seven questions to ask about your own agent setup.** Each one comes from a finding above.
+
+1. What is the one promise your design rests on, and can a chat message break it? (F-0)
+2. Can the agent that reads untrusted text also approve, publish or push? (F-0, F-2)
+3. If you deny a tool, can the agent still reach the same thing through a shell? (F-5, F-10)
+4. When a check gets bad input, does it answer yes or no? (F-3)
+5. Is the list of off-limits folders written in one place, or several that can drift apart? (F-14)
+6. Can a quoted, escaped or encoded version of a path get past your check? (F-16)
+7. Where do your secrets live, and what else on the machine can read them? (F-12)
+
+**Where to find each fix in this repo.**
+
+| Finding | In this repo |
+|---|---|
+| F-10, F-16: folder rules bypassed through the shell or through quoting | [`claude-code/hooks/`](../claude-code/hooks/) |
+| F-5: tool policy undone by an open exec tool | [`openclaw/`](../openclaw/) (hardened config and notes) |
+| F-9, F-12: secrets in config and files | [`openclaw/openclaw-config.sh`](../openclaw/openclaw-config.sh) |
+| Third-party skills as a supply chain | [`skill-scanner/`](../skill-scanner/) |
+
+**What this is not.** It is one setup, audited once, by someone learning in public. It shows a method and a set of mistakes worth checking for. It doesn't certify anything.
 
 ## What I'd tell someone building the same thing
 
