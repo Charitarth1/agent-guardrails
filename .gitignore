@@ -1,0 +1,18 @@
+# Local config and secrets: never commit
+claude-code/hooks/guardrails.json
+*.local.txt
+*.local
+identifiers.local
+openclaw/openclaw.json
+tool_audit.jsonl
+.env
+.env.*
+
+# Skill scanner caches
+skill-scanner/.venvs/
+skill-scanner/.clones/
+skill-scanner/reports/
+
+__pycache__/
+*.pyc
+.DS_Store

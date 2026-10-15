@@ -1,0 +1,213 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "~/.openclaw/workspace",
+      "model": {
+        "primary": "openrouter/deepseek/deepseek-v4-flash",
+        "fallbacks": [
+          "openrouter/google/gemini-3.7-flash",
+          "openrouter/meta-llama/llama-3.3-70b-instruct:free"
+        ]
+      },
+      "modelPolicy": {
+        "allow": [
+          "openrouter/deepseek/deepseek-v4-flash",
+          "openrouter/google/gemini-3.7-flash",
+          "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+          "openrouter/google/gemini-3.1-flash-lite",
+          "openrouter/openai/whisper-large-v3-turbo"
+        ]
+      },
+      "systemAgent": {
+        "agentId": "main"
+      },
+      "heartbeat": {
+        "agentId": "main",
+        "every": "0m"
+      },
+      "timeoutSeconds": 1800,
+      "sandbox": {
+        "mode": "all",
+        "backend": "podman",
+        "scope": "session",
+        "workspaceAccess": "rw",
+        "docker": {
+          "image": "openclaw-sandbox:bookworm-slim",
+          "network": "none",
+          "readOnlyRoot": true,
+          "capDrop": [
+            "ALL"
+          ],
+          "user": "1000:1000",
+          "memory": "384m",
+          "memorySwap": "384m",
+          "pidsLimit": 128,
+          "tmpfs": [
+            "/tmp",
+            "/var/tmp"
+          ],
+          "binds": [
+            "~/shared-sources:/sources:ro"
+          ],
+          "dangerouslyAllowReservedContainerTargets": false,
+          "dangerouslyAllowExternalBindSources": true,
+          "dangerouslyAllowContainerNamespaceJoin": false
+        },
+        "prune": {
+          "idleHours": 1,
+          "maxAgeDays": 1
+        }
+      }
+    },
+    "ownership": "explicit",
+    "entries": {
+      "main": {
+        "workspace": "~/.openclaw/workspace",
+        "sandbox": {
+          "docker": {
+            "memory": "384m",
+            "memorySwap": "384m"
+          }
+        }
+      },
+      "research": {
+        "workspace": "~/.openclaw/workspace-research",
+        "identity": {
+          "name": "Research assistant"
+        },
+        "sandbox": {
+          "docker": {
+            "memory": "256m",
+            "memorySwap": "256m"
+          }
+        }
+      }
+    }
+  },
+  "bindings": [
+    {
+      "agentId": "main",
+      "match": {
+        "channel": "telegram",
+        "accountId": "default"
+      }
+    },
+    {
+      "agentId": "research",
+      "match": {
+        "channel": "telegram",
+        "accountId": "research"
+      }
+    }
+  ],
+  "talk": {
+    "agentId": "main"
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "allowlist",
+      "groupPolicy": "disabled",
+      "configWrites": false,
+      "allowFrom": [
+        "__TELEGRAM_OWNER_ID__"
+      ],
+      "accounts": {
+        "default": {
+          "tokenFile": "~/.openclaw/secrets/telegram-bot-token-default"
+        },
+        "research": {
+          "tokenFile": "~/.openclaw/secrets/telegram-bot-token-research"
+        }
+      }
+    }
+  },
+  "commands": {
+    "ownerAllowFrom": [
+      "telegram:__TELEGRAM_OWNER_ID__"
+    ],
+    "bash": false,
+    "config": false,
+    "mcp": false,
+    "plugins": false,
+    "debug": false
+  },
+  "tools": {
+    "profile": "coding",
+    "fs": {
+      "workspaceOnly": true
+    },
+    "exec": {
+      "strictInlineEval": true,
+      "mode": "auto"
+    },
+    "elevated": {
+      "enabled": false
+    },
+    "web": {
+      "search": {
+        "enabled": true,
+        "provider": "duckduckgo",
+        "maxResults": 5
+      },
+      "fetch": {
+        "enabled": true,
+        "maxChars": 50000
+      }
+    },
+    "alsoAllow": [
+      "web_fetch",
+      "web_search"
+    ],
+    "deny": [
+      "browser",
+      "x_search"
+    ],
+    "sandbox": {
+      "tools": {
+        "deny": [
+          "browser",
+          "x_search"
+        ],
+        "alsoAllow": [
+          "web_fetch",
+          "web_search"
+        ]
+      }
+    }
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": {
+        "source": "store",
+        "provider": "default",
+        "id": "GATEWAY_AUTH_TOKEN"
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "diagnostics-otel": {
+        "enabled": true
+      }
+    }
+  },
+  "diagnostics": {
+    "enabled": true,
+    "otel": {
+      "enabled": true,
+      "endpoint": "https://__OTEL_HOST__/api/public/otel",
+      "protocol": "http/protobuf",
+      "serviceName": "openclaw-gateway",
+      "traces": true,
+      "metrics": true,
+      "logs": true,
+      "logsExporter": "both",
+      "sampleRate": 1.0,
+      "flushIntervalMs": 60000
+    }
+  }
+}

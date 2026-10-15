@@ -1,0 +1,24 @@
+{
+  "_comment": "Copy to guardrails.json (gitignored) and edit. Paths are relative to this file unless absolute.",
+
+  "denylisted_dirs": [
+    "private-vault",
+    "Finance Records",
+    "health-notes"
+  ],
+
+  "registry": null,
+  "_registry_comment": "Optional path to a JSON file with a \"denylist\" list (e.g. a shared project registry). It can add directories, never remove them.",
+
+  "term_denylist_files": ["dlp_denylist.local.txt"],
+  "_term_comment": "One literal per line: client names, codenames, personal identifiers. Keep these files gitignored.",
+
+  "audit_log": "tool_audit.jsonl",
+
+  "outbound_tool_prefixes": [
+    "mcp__claude_ai_Buffer__",
+    "mcp__claude_ai_Gmail__"
+  ],
+
+  "exec_tool_names": ["bash", "exec", "process", "code_execution", "shell"]
+}

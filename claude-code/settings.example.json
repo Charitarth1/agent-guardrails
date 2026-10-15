@@ -1,0 +1,40 @@
+{
+  "_comment": "Merge into .claude/settings.json. Replace /path/to/agent-guardrails with your clone's absolute path. Deny rules are layer 1; the hooks are layer 2 and also cover Bash, which Read(...) rules do not (F-10).",
+  "permissions": {
+    "deny": [
+      "Read(~/private-vault/**)",
+      "Read(~/Finance Records/**)",
+      "Read(~/health-notes/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gh/hosts.yml)",
+      "Read(**/.env)",
+      "Read(**/.env.*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(rm:*)",
+      "mcp__claude_ai_Buffer__create_post",
+      "mcp__claude_ai_Gmail__create_draft"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read|Write|Edit|NotebookEdit|mcp__claude_ai_Buffer__.*|mcp__claude_ai_Gmail__.*",
+        "hooks": [
+          { "type": "command", "command": "python3 /path/to/agent-guardrails/claude-code/hooks/dlp_pre_tool_use.py" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit|Bash|WebFetch|WebSearch|mcp__.*",
+        "hooks": [
+          { "type": "command", "command": "python3 /path/to/agent-guardrails/claude-code/hooks/audit_post_tool_use.py" }
+        ]
+      }
+    ]
+  }
+}
