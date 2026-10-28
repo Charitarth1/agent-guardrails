@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agent-guardrails: governance-as-code for AI coding agents</title>
+<meta name="description" content="Deterministic, fail-closed checks at the tool-call boundary for Claude Code and other coding agents, with an honest account of what they cannot stop. Apache-2.0, Python standard library only.">
+<style>
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --ink: #17181c; --muted: #5a5f6b; --line: #dedbd2;
+  --accent: #1f3864; --accent-ink: #ffffff; --ok: #1d6b45; --bad: #a3261f; --warn-bg: #fff6e0; --warn-line: #e0b84a;
+  --code-bg: #f1efe8;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121316; --surface: #1a1c21; --ink: #ecebe6; --muted: #a2a6b0; --line: #2d3037;
+    --accent: #9db7ec; --accent-ink: #101521; --ok: #62c28f; --bad: #f08a82; --warn-bg: #2a2412; --warn-line: #7a6320;
+    --code-bg: #20232a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121316; --surface: #1a1c21; --ink: #ecebe6; --muted: #a2a6b0; --line: #2d3037;
+  --accent: #9db7ec; --accent-ink: #101521; --ok: #62c28f; --bad: #f08a82; --warn-bg: #2a2412; --warn-line: #7a6320;
+  --code-bg: #20232a;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans); }
+.wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+header.hero { padding: 56px 0 36px; border-bottom: 1px solid var(--line); }
+.eyebrow { font: 500 0.75rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(1.9rem, 5vw, 2.9rem); line-height: 1.1; margin: 14px 0 14px; letter-spacing: -0.02em; }
+.lede { font-size: 1.15rem; color: var(--muted); max-width: 46rem; margin: 0 0 22px; }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-block; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; font-weight: 600; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+section { padding: 40px 0; border-bottom: 1px solid var(--line); }
+h2 { font-size: 1.45rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 0 0 20px; max-width: 46rem; }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-top: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.stat b { display: block; font-size: 1.7rem; line-height: 1.1; color: var(--accent); }
+.stat span { font-size: 0.85rem; color: var(--muted); }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 0.93rem; }
+th, td { text-align: left; padding: 10px 12px; vertical-align: top; border-bottom: 1px solid var(--line); }
+th { font: 600 0.72rem/1.2 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+.tablewrap { overflow-x: auto; }
+code, pre { font-family: var(--mono); font-size: 0.86rem; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 14px 16px; border-radius: 10px; overflow-x: auto; margin: 0; border: 1px solid var(--line); }
+pre code { background: none; padding: 0; }
+.blk { color: var(--bad); font-weight: 600; } .alw { color: var(--ok); font-weight: 600; }
+.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 12px; padding: 18px 20px; }
+.warn h2 { margin-bottom: 8px; }
+.warn ul { margin: 8px 0 0; padding-left: 1.2rem; }
+.warn li { margin: 6px 0; }
+ul.plain { padding-left: 1.2rem; margin: 8px 0 0; }
+ul.plain li { margin: 6px 0; }
+footer { padding: 32px 0 56px; color: var(--muted); font-size: 0.9rem; }
+a { color: var(--accent); }
+@media (max-width: 560px) { header.hero { padding: 36px 0 28px; } section { padding: 30px 0; } }
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Apache-2.0 · Python 3.9+ standard library · no pip dependencies</div>
+  <h1>Governance-as-code for AI coding agents</h1>
+  <p class="lede">Deterministic, fail-closed checks that run before a tool call does: secrets, private paths, destructive commands, exfiltration, and a human sign-off for <code>git push</code>. Built for Claude Code and adaptable to other agent harnesses. Written to say plainly what it cannot stop.</p>
+  <div class="btns">
+    <a class="btn primary" href="https://github.com/Charitarth1/agent-guardrails">View on GitHub</a>
+    <a class="btn" href="#quickstart">Quick start</a>
+    <a class="btn" href="https://github.com/Charitarth1/agent-guardrails/blob/main/docs/limitations.md">Read the limits first</a>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<section>
+  <h2>Two engines, kept separate</h2>
+  <p class="sub">Prompts guide an agent; they do not hold when the agent is being manipulated. So the repo splits the job.</p>
+  <div class="grid">
+    <div class="card"><h3>The Brain: in-context skills</h3><p>Three optional <code>SKILL.md</code> packages: <code>safe-agent-coder</code> (blast-radius tiers, tests before claims), <code>untrusted-data-guard</code> (treat fetched text as data, keep the Rule of Two) and <code>governance-auditor</code> (self-audit against the matrix). Guidance only. Nothing here is enforced.</p></div>
+    <div class="card"><h3>The Brakes: runtime hooks</h3><p>A PreToolUse hook inspects each call and exits <code>2</code> to block, <code>0</code> to allow. Any crash, bad config, missing pack or changed policy also exits <code>2</code>. A PostToolUse hook keeps a hash-chained audit log.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>What the hook checks</h2>
+  <p class="sub">35 rules in five swappable policy packs, across four tiers. Rules read the decoded tool input, not just the raw JSON, and normalise quotes, zero-width characters, SQL comments and whitespace first.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Tier</th><th>Examples</th><th>Why it can be decided per call</th></tr></thead>
+    <tbody>
+      <tr><td><b>Global</b> (10)</td><td>API keys, private-key headers, SSNs, Luhn-valid card numbers and SINs</td><td>A secret in an argument is visible before it is written or sent.</td></tr>
+      <tr><td><b>Path</b></td><td>Your denylisted folders, the approval secret and receipt, and writes to guardrails config, packs, source and harness settings</td><td>The target path is in the call.</td></tr>
+      <tr><td><b>Command</b> (20)</td><td><code>terraform destroy</code>, <code>DROP TABLE</code>, force-push, <code>rm -rf</code> of <code>/</code> or <code>~</code>, <code>curl | sh</code>, reverse shells, upload commands</td><td>The command text is the call.</td></tr>
+      <tr><td><b>Outbound</b> (5)</td><td>Personal finance, health or housing terms in Gmail or Buffer-style publishing tools only</td><td>Applies only to tools that leave your machine.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub" style="margin-top:18px">Every rule is tested in pairs: what must be blocked and what must still be allowed.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Blocked</th><th>Still allowed</th></tr></thead>
+    <tbody>
+      <tr><td><span class="blk">block</span> <code>git -C . push origin main</code> (needs approval)</td><td><span class="alw">allow</span> <code>git commit -m "fix push notification bug"</code></td></tr>
+      <tr><td><span class="blk">block</span> <code>rm -r -f ~</code></td><td><span class="alw">allow</span> <code>rm -rf ./node_modules</code></td></tr>
+      <tr><td><span class="blk">block</span> <code>kubectl --context prod delete ns payments</code></td><td><span class="alw">allow</span> <code>kubectl delete pod web-1 --namespace dev</code></td></tr>
+      <tr><td><span class="blk">block</span> <code>python3 &lt;&lt;PY import urllib.request …</code></td><td><span class="alw">allow</span> <code>node build.js --env=prod --target internet</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>The approval gate</h2>
+  <p class="sub"><code>git push</code> and <code>git remote add</code> are held until a human mints a receipt from an interactive terminal. Receipts are HMAC-signed, single-use, scoped to one action and capped at 60 minutes. A receipt clears only the rule it was minted for, so <code>git push && rm -rf ~/</code> is still blocked. Force-push, <code>terraform destroy</code> and the other destructive commands have no approval path at all.</p>
+  <pre><code>python3 guardrails.py approve --scope git_remote_push --ttl 15   # you, in your own terminal</code></pre>
+</section>
+
+<section>
+  <h2>Scope: what a tool-call hook can decide</h2>
+  <p class="sub">The MIT AI Risk Repository has 24 risk subdomains. It does not say which a runtime hook can decide, so the repo publishes its own row-by-row classification and labels it as such.</p>
+  <div class="stats">
+    <div class="stat"><b>5</b><span>decidable at the tool-call boundary</span></div>
+    <div class="stat"><b>3</b><span>decidable in part</span></div>
+    <div class="stat"><b>16</b><span>not decidable, not claimed</span></div>
+    <div class="stat"><b>18</b><span>risk and control rows, each cited to ARC, OWASP and MIT</span></div>
+  </div>
+  <p class="sub" style="margin-top:16px">Matrix rows without enforcing code are marked "not enforced". See the <a href="https://github.com/Charitarth1/agent-guardrails/blob/main/docs/agentic_risk_screener.md">classification and framework mapping</a>.</p>
+</section>
+
+<section>
+  <div class="warn">
+    <h2>A tripwire, not a sandbox</h2>
+    <p style="margin:0">Read this before relying on it. The full list is in <a href="https://github.com/Charitarth1/agent-guardrails/blob/main/docs/limitations.md">limitations.md</a>.</p>
+    <ul>
+      <li>An agent running as your own OS user can still approve its own actions (by faking a terminal or writing its own code). The gate catches accidents; a real boundary needs the secret kept away from that user.</li>
+      <li>Pattern matching misses shell indirection: variables, <code>cd</code> then a relative path, globs.</li>
+      <li>An agent able to rewrite the engine's source from a shell can remove the checks. Install the clone where the agent's user cannot write.</li>
+      <li>The audit log's hash chain detects naive edits only. Ship records somewhere the agent cannot write.</li>
+      <li>For real isolation use a rootless container, a VM or a separate user.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>How it was checked</h2>
+  <p class="sub">The first draft went through two adversarial review rounds (AI-assisted red-teaming with working payloads against the real code). Each finding became a permanent test.</p>
+  <ul class="plain">
+    <li>Round one found that the agent could approve itself, that a valid receipt skipped every later check, and that sixteen of eighteen framework references pointed at unrelated entries.</li>
+    <li>Round two found two back doors added by the first fix, config that an agent could rewrite from its working directory, and a risk-taxonomy table with subdomains that do not exist.</li>
+    <li>Fixes include a policy digest pinned at install time that fails closed on any edit, and every framework ID re-checked against the source register.</li>
+  </ul>
+  <div class="stats">
+    <div class="stat"><b>179</b><span>unit tests</span></div>
+    <div class="stat"><b>44</b><span>case DLP regression suite</span></div>
+    <div class="stat"><b>0</b><span>pip dependencies</span></div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <h2>Quick start</h2>
+  <p class="sub">Run these in your own project. Re-run <code>install-hooks</code> after any edit to <code>guardrails.json</code> or a pack, or every tool call fails closed.</p>
+  <pre><code>git clone https://github.com/Charitarth1/agent-guardrails.git
+cd your-project
+python3 ../agent-guardrails/guardrails.py init            # creates ./guardrails.json
+python3 ../agent-guardrails/guardrails.py install-hooks   # wires .claude/settings.json + AGENTS.md
+python3 ../agent-guardrails/guardrails.py vendor-skills --target claude-code   # optional skills
+# restart Claude Code, then:
+python3 ../agent-guardrails/guardrails.py check --tool Bash --payload "terraform destroy"</code></pre>
+</section>
+
+</main>
+
+<footer><div class="wrap">
+  Apache-2.0. Built by <a href="https://safeaiguy.com/">Charitarth Bharti</a>, who works on AI governance and agentic AI risk. Built with AI coding assistants and reviewed with tests and adversarial passes; the author owns the result.
+  Acknowledgements for GovTech Singapore ARC, MITRE ATLAS, the MIT AI Risk Repository and roboticforce are in <a href="https://github.com/Charitarth1/agent-guardrails/blob/main/NOTICE">NOTICE</a>. Also see <a href="https://github.com/Charitarth1/agent-guardrails/blob/main/docs/lessons-from-a-self-audit.md">Lessons from a self-audit</a> and the <a href="https://github.com/Charitarth1/agent-guardrails/blob/main/docs/threat-model.md">threat model</a>.
+</div></footer>
+</body>
+</html>
