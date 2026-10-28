@@ -17,6 +17,22 @@ Use it as a tripwire and an audit point, and pair it with:
 - OS isolation: containers with `--network none`, macOS `sandbox-exec`, separate users
 - keeping secrets out of the agent's reach entirely, since the best DLP is having nothing to leak
 
+## The approval gate cannot stop an agent running as your user
+
+`guardrails.py approve` refuses to mint a receipt unless stdin and stdout are a terminal, and the COMMAND tier blocks the CLI shapes it can recognise (`approve ... --scope`, `approval_gate.py mint`, `mint_receipt(`). That stops an agent's ordinary Bash call. It does not stop an agent that runs as the same OS user and:
+
+- allocates a pseudo-terminal (`script -q /dev/null ...`) around the CLI,
+- writes its own Python file that calls `mint_receipt(..., force_terminal_check=False)` and runs it, or
+- reads `~/.agent-guardrails-secret` through a glob (`~/.agent-guardrails-secre?`) and signs a receipt itself.
+
+Treat the gate as a tripwire that records human sign-off and catches accidents. For a real boundary, keep the secret where the agent's user cannot read it: a separate OS user that owns the secret and runs the mint command, or a keychain item that requires user presence.
+
+## Policy files are pinned, not locked
+
+`install-hooks` writes the config path and a SHA-256 of `guardrails.json` plus every active pack into the hook command. If either changes afterwards, every tool call fails closed until a human re-runs `install-hooks`. That turns "the agent edited its own policy" into a visible outage instead of a silent weakening. It does not protect `src/` itself: an agent that can rewrite `src/dlp_pre_tool_use.py` can remove the check. File-tool writes to `src/` and `packs/` are blocked, but shell writes are not reliably detectable. Install the clone somewhere the agent's user cannot write (for example owned by another user, or `chmod -R a-w`).
+
+Claude Code snapshots hook configuration at session start, so an agent editing `.claude/settings.json` mid-session does not change the running hooks; check your harness does the same.
+
 ## The audit log is append-only by convention
 
 The agent's user account can edit `tool_audit.jsonl`. If you need integrity, ship records to a collector the agent can't write to. The log records tool names and targets, not content, so it doesn't become a second copy of sensitive data.

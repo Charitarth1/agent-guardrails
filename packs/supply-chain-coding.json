@@ -1,0 +1,42 @@
+{
+  "name": "Supply Chain & Code Execution Hardening",
+  "description": "Prevents shell interpreter evasion, unvetted script executions (curl|sh), base64 decoding into shells, and typosquat installs.",
+  "version": 2,
+  "rules": [
+    {
+      "id": "inline_interpreter_eval",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking inline code evaluation commands used to evade static checks (python -c, node -e, python - <<EOF)",
+      "pattern": "\\b(?:python[0-9.]*|node|perl|ruby|deno|bun)\\b[^;&|]*?(?:\\s-[a-zA-Z]*[ce](?=[\\s\\\"']|$)|\\s--eval\\b|\\s(?:-\\s+)?<<).*?\\b(?:open|require|fs|net|socket|subprocess|urllib|requests|http|child_process|os\\.system|import\\s+os)\\b"
+    },
+    {
+      "id": "pipe_to_shell",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking download-and-execute pipes (curl/wget | sh, bash <(curl ...))",
+      "pattern": "(?:\\b(?:curl|wget)\\s+[^|;]*\\|\\s*(?:sudo\\s+)?(?:ba|z)?sh\\b|\\b(?:ba|z)?sh\\s+<\\s*\\(\\s*(?:curl|wget)\\b)"
+    },
+    {
+      "id": "base64_decode_shell",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking base64 decoding piped directly into shell execution or eval",
+      "pattern": "(?:\\bbase64\\s+(?:-d|--decode)[^|;]*\\|\\s*(?:sudo\\s+)?(?:ba|z)?sh\\b|\\beval\\s+[\"']?\\$\\([^)]*base64)"
+    },
+    {
+      "id": "reverse_shell_socket",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking netcat listener spawns, ncat, or raw /dev/tcp interactive reverse shells",
+      "pattern": "(?:\\b(?:nc|ncat)\\s+-[a-zA-Z0-9]*e\\s+|\\b(?:nc|ncat)\\s+[a-zA-Z0-9.-]+\\s+[0-9]+\\s+<|/dev/tcp/[0-9.]+|mkfifo\\s+[^;]+\\s*&&\\s*cat)"
+    },
+    {
+      "id": "outbound_data_upload",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking data upload and exfiltration via curl/wget/scp flags (excluding localhost)",
+      "pattern": "\\b(?:curl|wget)\\b[^;&|]*(?:\\s-d\\s*@|\\s--data(?:-binary|-raw|-urlencode)?(?:=|\\s+)@|\\s--json\\s+@|\\s-T\\s*|\\s--upload-file\\b|\\s-F\\s*\\S*@|\\s--post-file\\b)|\\bscp\\s+[^;&|]*@[a-zA-Z0-9.-]+:"
+    }
+  ]
+}

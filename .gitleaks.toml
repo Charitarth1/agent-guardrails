@@ -1,0 +1,18 @@
+# Keep gitleaks' default rules; allow only the synthetic fixtures the DLP tests
+# need to prove that secrets are blocked. Each pattern matches a deliberately
+# fake value (sequential digits or a truncated key), never a whole directory,
+# so a real secret pasted into tests/ is still reported.
+title = "agent-guardrails"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic DLP test fixtures"
+regexes = [
+  '''^ghp_1234567890''',
+  '''^sk_live_1234567890''',
+  '''^sk-1234567890''',
+  '''^0123456789abcdef$''',
+  '''MIIEowIBAAKCAQ\.\.\.''',
+]

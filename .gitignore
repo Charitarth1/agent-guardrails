@@ -16,3 +16,7 @@ skill-scanner/reports/
 __pycache__/
 *.pyc
 .DS_Store
+
+.approval_receipt.json
+.agent-guardrails-secret
+

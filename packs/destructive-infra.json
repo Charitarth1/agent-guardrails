@@ -1,0 +1,70 @@
+{
+  "name": "Destructive Infrastructure & Mutation",
+  "description": "Hard blocks on destructive cloud, database, Kubernetes, and git mutations. Adapted in part from MIT-licensed roboticforce patterns.",
+  "version": 2,
+  "rules": [
+    {
+      "id": "terraform_destroy",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking terraform destroy and destroy-apply commands across flags",
+      "pattern": "\\bterraform\\b[^;&|]*?\\s(?:destroy\\b|apply\\b[^;&|]*\\s-destroy\\b)"
+    },
+    {
+      "id": "prisma_migrate_reset",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking destructive prisma database resets",
+      "pattern": "\\bprisma\\b[^;&|]*\\bmigrate\\s+reset\\b"
+    },
+    {
+      "id": "db_drop",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking raw SQL DROP DATABASE, DROP SCHEMA, or DROP TABLE statements",
+      "pattern": "(?i)\\bDROP\\s+(?:DATABASE|SCHEMA|TABLE)\\b"
+    },
+    {
+      "id": "k8s_delete_namespace",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking mass deletion of Kubernetes namespaces or cluster resources",
+      "pattern": "\\bkubectl\\b[^;&|]*?\\bdelete\\s+(?:-{1,2}[\\w-]+(?:=\\S+|\\s+\\S+)?\\s+)*?(?:ns|namespaces?|all)(?:/\\S*)?(?=\\s|$|[;&|,])|\\bkubectl\\b[^;&|]*\\bdelete\\b[^;&|]*\\s(?:--all|--all-namespaces|-A)(?=\\s|$)"
+    },
+    {
+      "id": "git_force_push",
+      "tier": "command",
+      "action": "block",
+      "description": "Hard block on destructive git force pushes",
+      "pattern": "\\bgit(?:\\s+(?:-[Cc]\\s+\\S+|--[\\w-]+(?:=\\S+)?|-[a-zA-Z]))*\\s+push\\b[^;&|]*?(?:\\s(?:--force(?:-with-lease|-if-includes)?\\b|-[a-zA-Z]*f[a-zA-Z]*\\b)|\\s\\+[\\w./-])"
+    },
+    {
+      "id": "git_remote_push",
+      "tier": "command",
+      "action": "require_approval",
+      "description": "Git pushes require out-of-band terminal human approval receipt",
+      "pattern": "\\bgit(?:\\s+(?:-[Cc]\\s+\\S+|--[\\w-]+(?:=\\S+)?|-[a-zA-Z]))*\\s+(?:push|remote\\s+add)\\b"
+    },
+    {
+      "id": "rm_rf_critical",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking recursive removal of /, system directories, home, the parent directory, or the whole working directory",
+      "pattern": "\\brm\\b(?=[^;&|]*\\s(?:-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)(?=\\s|$))[^;&|]*\\s(?:/\\*?|~/?\\*?|\\$\\{?HOME\\}?/?\\*?|\\.\\.?/?\\*?|\\*|/(?:usr|etc|bin|sbin|var|opt|lib|System|Library|Applications|Users|home|private)/?\\*?)(?=\\s|$|[;&|])"
+    },
+    {
+      "id": "tunneling_egress",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking reverse tunneling tools and remote port forwarders (ngrok, cloudflared, ssh -R)",
+      "pattern": "\\b(?:ngrok|cloudflared|ssh\\s+-[a-zA-Z0-9]*R)\\b"
+    },
+    {
+      "id": "cmd_exfiltration",
+      "tier": "command",
+      "action": "block",
+      "description": "Blocking outbound network exfiltration via curl/wget/nc or /dev/tcp (excluding localhost)",
+      "pattern": "\\b(?:curl|wget)\\b[^;&|]*https?://(?!(?:localhost|127\\.0\\.0\\.1)(?::\\d+)?(?:/|\\b))|\\bnc\\s+-|/dev/tcp/"
+    }
+  ]
+}

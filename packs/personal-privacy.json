@@ -1,0 +1,28 @@
+{
+  "name": "Personal Privacy & Outbound Disclosures",
+  "description": "Protects personal consumer context (housing agreements, private investments, dating apps) from accidental outbound publishing.",
+  "version": 1,
+  "rules": [
+    {
+      "id": "outbound_personal_accounts",
+      "tier": "outbound",
+      "action": "block",
+      "description": "Personal investment and retirement account mentions on outbound tools",
+      "pattern": "\\b(?:rrsp|tfsa|401k balance|ira account|personal mortgage)\\b"
+    },
+    {
+      "id": "outbound_intimate",
+      "tier": "outbound",
+      "action": "block",
+      "description": "Private dating app or personal relationship details on outbound tools",
+      "pattern": "\\b(?:tinder|bumble|hinge|dating profile|romantic partner)\\b"
+    },
+    {
+      "id": "outbound_housing",
+      "tier": "outbound",
+      "action": "block",
+      "description": "Residential tenancy, landlord, and lease agreements on outbound tools",
+      "pattern": "\\b(?:residential tenancy|lease agreement|landlord dispute|rental contract)\\b"
+    }
+  ]
+}
