@@ -3,11 +3,13 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-Python%203.9%2B%20Stdlib-green.svg)](guardrails.py)
 [![CI](https://github.com/Charitarth1/agent-guardrails/actions/workflows/ci.yml/badge.svg)](https://github.com/Charitarth1/agent-guardrails/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/Docs-GitHub%20Pages-blue.svg)](https://charitarth1.github.io/agent-guardrails/)
 [![Architecture: Dual-Engine](https://img.shields.io/badge/Architecture-Dual--Engine%20(Brain%20%2B%20Brakes)-purple.svg)](#the-dual-engine-architecture)
 
 > **Enterprise AI Agent Guardrails Toolkit: Governance-as-Code for Autonomous Coding & Tool-Calling Agents.**  
 > Zero external pip dependencies. Apache 2.0. Built for Claude Code, Cursor, Antigravity, OpenHands, and custom agent harnesses.  
-> Created by Charitarth Bharti ([safeaiguy.com](https://safeaiguy.com)).
+> Created by Charitarth Bharti ([safeaiguy.com](https://safeaiguy.com)).  
+> Overview page: [charitarth1.github.io/agent-guardrails](https://charitarth1.github.io/agent-guardrails/)
 
 Guardrails built from first principles and refined through adversarial self-audits to run AI agents safely on developer machines and CI/CD pipelines without handing them the keys.
 
