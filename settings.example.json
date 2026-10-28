@@ -1,0 +1,46 @@
+{
+  "_comment": "Manual alternative to `guardrails.py install-hooks` (preferred: it also pins your guardrails.json path and a SHA-256 of config + packs, so policy edits fail closed). Merge into .claude/settings.json and replace /path/to/agent-guardrails with your clone's absolute path; without the pin the hook reads /path/to/agent-guardrails/guardrails.json. Universal matcher (.*) sends every tool through the hook, and the sh -c wrapper turns any non-zero exit into 2 (block).",
+  "permissions": {
+    "deny": [
+      "Read(**/private-vault/**)",
+      "Read(**/Finance Records/**)",
+      "Read(**/health-notes/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gh/hosts.yml)",
+      "Read(**/.env)",
+      "Read(**/.env.*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(rm:*)",
+      "mcp__claude_ai_Buffer__create_post",
+      "mcp__claude_ai_Gmail__create_draft"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'python3 \"$0\" \"$@\"; rc=$?; [ $rc -eq 0 ] || exit 2' '/path/to/agent-guardrails/src/dlp_pre_tool_use.py'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /path/to/agent-guardrails/src/audit_post_tool_use.py"
+          }
+        ]
+      }
+    ]
+  }
+}

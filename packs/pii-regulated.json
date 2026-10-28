@@ -1,0 +1,44 @@
+{
+  "name": "PII & Regulated Data Protection",
+  "description": "Rules for detecting and intercepting payment cards, national identity numbers, and sensitive health/financial disclosures.",
+  "version": 2,
+  "rules": [
+    {
+      "id": "ssn_separator",
+      "tier": "global",
+      "action": "block",
+      "description": "US Social Security Numbers in standard hyphenated format",
+      "pattern": "\\b\\d{3}-\\d{2}-\\d{4}\\b"
+    },
+    {
+      "id": "sin_candidate",
+      "tier": "global",
+      "action": "block",
+      "luhn": true,
+      "description": "Canadian Social Insurance Numbers (formatted 3-3-3 runs or explicit SIN context verified with Luhn)",
+      "pattern": "\\b\\d{3}[ -]\\d{3}[ -]\\d{3}\\b|(?i:\\b(?:sin|social\\s+insurance)\\b[^\\n\\r]{0,30}\\b\\d{9}\\b)"
+    },
+    {
+      "id": "payment_card_candidate",
+      "tier": "global",
+      "action": "block",
+      "luhn": true,
+      "description": "Payment card number runs (13-19 digits evaluated via Luhn algorithm)",
+      "pattern": "\\b(?:\\d[ -]?){13,19}\\b"
+    },
+    {
+      "id": "outbound_financial",
+      "tier": "outbound",
+      "action": "block",
+      "description": "Personal financial and account keywords on outbound publishing tools",
+      "pattern": "\\b(?:account number|routing number|cvv|iban|swift code|tax return|wire transfer|mortgage statement)\\b"
+    },
+    {
+      "id": "outbound_medical",
+      "tier": "outbound",
+      "action": "block",
+      "description": "Sensitive healthcare, diagnosis, and medical terms on outbound publishing tools",
+      "pattern": "\\b(?:prescription|diagnosis|medication dosage|therapy session|psychiatrist notes|pathology report)\\b"
+    }
+  ]
+}
